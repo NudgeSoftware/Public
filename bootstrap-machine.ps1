@@ -13,7 +13,7 @@ $nudgeDir = "C:\ProgramData\Nudge"
 if (!(Test-Path $nudgeDir)) {
     New-Item -Path $nudgeDir -type Directory
 }
-$settingsPath = "$nudgeDir\settings.txt"
+$settingsPath = "$nudgeDir\settings.ini"
 $settings = @{}
 if (Test-Path $settingsPath) {
     Get-Content $settingsPath | foreach-object -begin {$settings=@{}} -process { $k = [regex]::split($_,'='); if(($k[0].CompareTo("") -ne 0) -and ($k[0].StartsWith("[") -ne $True)) { $settings.Add($k[0], $k[1]) } }
@@ -36,12 +36,7 @@ if (!($settings["name"])) {
         $settings["name"] = $settings["username"]
     }
 }
-if (!($settings["type"])) {
-    $settings["type"] = Read-Host "What type of install is this? [ui,full] (ENTER for ui) "
-    if (!($settings["type"]) -and $settings["type"] -ne "ui") {
-        $settings["type"] = "ui"
-    }
-}
+
 if (Test-Path $settingsPath) {
     Remove-Item $settingsPath
 }
