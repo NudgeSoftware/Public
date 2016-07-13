@@ -1,6 +1,3 @@
-# duplicated to https://gist.github.com/awr/a5136e574556ed50ce94 for public access
-# START http://boxstarter.org/package/url?https://gist.githubusercontent.com/awr/a5136e574556ed50ce94/raw/dev-boxstarter.ps1
-
 # chocolatey initial setup
 choco feature enable -n=allowGlobalConfirmation -y
 choco feature enable -n=autoUninstaller -y
