@@ -113,4 +113,4 @@ if (!(Test-Path "$codeDir\Tooling")) {
     git clone git@github.com:NudgeSoftware/Tooling.git
 }
 
-bash /c/Code/Tooling/config/dev/bootstrap-machine.sh
+bash /c/Code/Tooling/config/dev/bootstrap-machine.sh --user=$settings["name"]
