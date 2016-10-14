@@ -102,11 +102,11 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
 
         ssh-agent -s
         ssh-add "$($bash.SshDir)/id_rsa"
-        Get-Content "$($bash.SshDir)\id_rsa.pub" | clip
-        Invoke-Item "$($bash.SshDir)\id_rsa.pub"
+        Get-Content "$($ps.SshDir)\id_rsa.pub" | clip
+        Invoke-Item "$($ps.SshDir)\id_rsa.pub"
         Start-Process -FilePath "https://github.com/settings/ssh"
 
-        Write-Host "Copied the full contents of $($bash.SshDir)\id_rsa.pub (currently in your clipboard):"
+        Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
         Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
         ssh -T git@github.com
         New-Item $lockFile -Force
