@@ -30,6 +30,8 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
     Exit
 }
 
+Start-Job -ScriptBlock { Get-Content $ps.LogFile –Wait }
+
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
     Add-Content -Path $ps.EmailAddressFile -Value "$emailAddress"
@@ -118,6 +120,7 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
         if (Test-PendingReboot) { Invoke-Reboot }
 
         Enable-MicrosoftUpdate
+        # TODO: bitlocker
         cinst boxstarter -y
     } catch {
         Invoke-Item $ps.LogFile
@@ -155,4 +158,7 @@ if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
     }
 }
 
+# user script ??
+
 Enable-UAC
+
