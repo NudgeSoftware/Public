@@ -18,7 +18,7 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
 # Prerequisite Validation
 $os = Get-CimInstance Win32_OperatingSystem
 $prerequisites = New-Object PSObject -Property @{
-    OSHasVersion = $os.Version -gt 11
+    OSHasVersion = $os.Version -gt 10
     OSHasArchitecture = $os.OSArchitecture -eq '64-bit'
     OSHasType = ($os.Caption -like '*Pro*') -or ($os.Caption -like '*Enterprise*')
     UserNameValid = $env:UserName -notlike '* *'
@@ -160,6 +160,7 @@ if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
     }
 }
 
+# VS 2015 Update 3 required
 # user script ??
 
 Enable-UAC
