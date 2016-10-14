@@ -127,15 +127,20 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
 New-Item $lockFile -Force
 
 
-if (Test-PendingReboot) { Invoke-Reboot }
-if (!(Test-Path $ps.SetupDir)) {
-    New-Item -Path $ps.SetupDir -type Directory
-}
-
-cinst boxstarter -y
-
 if (!(Test-Path $ps.CodeDir)) {
     New-Item -Path $ps.CodeDir -type Directory
+}
+
+if (!(Test-Path "$($ps.CodeDir)\Public")) {
+    if (Test-PendingReboot) { Invoke-Reboot }
+    try {
+        cd $ps.CodeDir
+        git clone git@github.com:NudgeSoftware/Public.git
+        cp "$($ps.CodeDir)\Public\*" $ps.SetupDir
+    } catch {
+        Invoke-Item $ps.LogFile
+        throw
+    }
 }
 
 if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
@@ -143,7 +148,7 @@ if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
     try {
         cd $ps.CodeDir
         git clone git@github.com:NudgeSoftware/Tooling.git
-        cp "$($ps.CodeDir)\Tooling\*" $ps.SetupDir
+        #cp "$($ps.CodeDir)\Tooling\*" $ps.SetupDir
     } catch {
         Invoke-Item $ps.LogFile
         throw
