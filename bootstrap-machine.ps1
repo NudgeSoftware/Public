@@ -15,11 +15,7 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
      $bash.$($p.Name) = $($ps.$($p.Name) -replace "\\", "/" -replace "C:", "/c")
 }
 
-Write-Host "Logs are available in $($ps.LogFile)"
-
-Write-Host $user
-Write-Host $ps
-Write-Host $bash
+invoke-expression 'cmd /c start powershell -Command { ""; "** See $($ps.LogFile) for all logs"; ""; Get-Content $ps.LogFile -Wait }'
 
 # Prerequisite Validation
 $os = Get-CimInstance Win32_OperatingSystem
@@ -50,93 +46,73 @@ Write-Host "Email Address: $emailAddress"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        # chocolatey initial setup
-        choco feature enable -n=allowGlobalConfirmation -y
-        choco feature enable -n=autoUninstaller -y
+    # chocolatey initial setup
+    choco feature enable -n=allowGlobalConfirmation -y
+    choco feature enable -n=autoUninstaller -y
 
-        # Windows setup
-        Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
-        Disable-InternetExplorerESC
-        Update-ExecutionPolicy
-        Update-ExecutionPolicy Unrestricted
-        New-Item $lockFile -Force
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
-    }
+    # Windows setup
+    Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
+    Disable-InternetExplorerESC
+    Update-ExecutionPolicy
+    Update-ExecutionPolicy Unrestricted
+    New-Item $lockFile -Force
 }
 
 # git install
 $lockFile = "$($ps.SetupDir)\install-git.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        cinst dotnet3.5 -y
-        cinst lessmsi -y
-        cinst webpicmd -y
-        if (Test-PendingReboot) { Invoke-Reboot }
+    cinst dotnet3.5 -y
+    cinst lessmsi -y
+    cinst webpicmd -y
+    if (Test-PendingReboot) { Invoke-Reboot }
 
-        # hack to get lessmsi available
-        $env:Path += ";C:\ProgramData\chocolatey\bin"
+    # hack to get lessmsi available
+    $env:Path += ";C:\ProgramData\chocolatey\bin"
 
-        # install Git
-        cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
-        cinst poshgit -y
-        cinst gitextensions -y
-        New-Item $lockFile -Force
-        Invoke-Reboot
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
-    }
+    # install Git
+    cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
+    cinst poshgit -y
+    cinst gitextensions -y
+    New-Item $lockFile -Force
+    Invoke-Reboot
 }
 
-# git install & setup
+# git setup
 $lockFile = "$($ps.SetupDir)\setup-git.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        git config --global user.name $user.FullName
-        git config --global user.email $emailAddress
-        git config --global core.autocrlf False
+    git config --global user.name $user.FullName
+    git config --global user.email $emailAddress
+    git config --global core.autocrlf False
 
-        # git ssh setup
-        if (!(Test-Path "$($ps.SshDir)\id_rsa")) {
-            ssh-keygen -q -C $emailAddress -f "$($bash.SshDir)/id_rsa"
-        }
-
-        ssh-agent -s
-        ssh-add "$($bash.SshDir)/id_rsa"
-        Get-Content "$($ps.SshDir)\id_rsa.pub" | clip
-        Invoke-Item "$($ps.SshDir)\id_rsa.pub"
-        Start-Process -FilePath "https://github.com/settings/ssh"
-
-        Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
-        Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
-        ssh -T git@github.com
-        New-Item $lockFile -Force
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
+    # git ssh setup
+    if (!(Test-Path "$($ps.SshDir)\id_rsa")) {
+        ssh-keygen -q -C $emailAddress -f "$($bash.SshDir)/id_rsa"
     }
+
+    ssh-agent -s
+    ssh-add "$($bash.SshDir)/id_rsa"
+    Get-Content "$($ps.SshDir)\id_rsa.pub" | clip
+    Invoke-Item "$($ps.SshDir)\id_rsa.pub"
+    Start-Process -FilePath "https://github.com/settings/ssh"
+
+    Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
+    Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
+    ssh -T git@github.com
+    New-Item $lockFile -Force
 }
 
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        Install-WindowsUpdate  -AcceptEula
-        if (Test-PendingReboot) { Invoke-Reboot }
+    Install-WindowsUpdate  -AcceptEula
+    if (Test-PendingReboot) { Invoke-Reboot }
 
-        Enable-MicrosoftUpdate
-        # TODO: bitlocker
-        cinst boxstarter -y
-        New-Item $lockFile -Force
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
-    }
+    Enable-MicrosoftUpdate
+    # TODO: bitlocker
+    cinst boxstarter -y
+    New-Item $lockFile -Force
 }
 
 
@@ -146,26 +122,16 @@ if (!(Test-Path $ps.CodeDir)) {
 
 if (!(Test-Path "$($ps.CodeDir)\Public")) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        cd $ps.CodeDir
-        git clone git@github.com:NudgeSoftware/Public.git
-        cp "$($ps.CodeDir)\Public\*" $ps.SetupDir
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
-    }
+    cd $ps.CodeDir
+    git clone git@github.com:NudgeSoftware/Public.git
+    cp "$($ps.CodeDir)\Public\*" $ps.SetupDir
 }
 
 if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    try {
-        cd $ps.CodeDir
-        git clone git@github.com:NudgeSoftware/Tooling.git
-        #cp "$($ps.CodeDir)\Tooling\*" $ps.SetupDir
-    } catch {
-        Invoke-Item $ps.LogFile
-        throw
-    }
+    cd $ps.CodeDir
+    git clone git@github.com:NudgeSoftware/Tooling.git
+    #cp "$($ps.CodeDir)\Tooling\*" $ps.SetupDir
 }
 
 # VS 2015 Update 3 required
