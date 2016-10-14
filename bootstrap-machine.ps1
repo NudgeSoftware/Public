@@ -1,18 +1,55 @@
-# chocolatey initial setup
-choco feature enable -n=allowGlobalConfirmation -y
-choco feature enable -n=autoUninstaller -y
-
-# Windows setup
-Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
-Disable-InternetExplorerESC
-Update-ExecutionPolicy
-Update-ExecutionPolicy Unrestricted
-
-# install settings
+﻿# variables
 $nudgeDir = "C:\ProgramData\Nudge"
-if (!(Test-Path $nudgeDir)) {
-    New-Item -Path $nudgeDir -type Directory
+$setupDir = "$nudgeDir\machine-setup"
+$codeDir = "C:\Code"
+$userDir = "C:\Users\$env:UserName"
+$logFile = "$env:LocalAppData\Boxstarter\Boxstarter.log"
+
+# Prerequisite Validation
+$os = Get-CimInstance Win32_OperatingSystem
+$prerequisites = New-Object PSObject -Property @{
+    OSHasVersion = $os.Version -gt 11
+    OSHasArchitecture = $os.OSArchitecture -eq '64-bit'
+    OSHasType = ($os.Caption -like '*Pro') -or ($os.Caption -like '*Enterprise')
+    UserNameValid = $env:UserName -notlike '* *'
+    UserMicrosoftAccount = $true
 }
+if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType -or !$prerequisites.UserNameValid -or !$prerequisites.UserMicrosoftAccount) {
+    if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType) { $host.ui.WriteErrorLine("Minimum supported version of Windows is Windows 10 Pro, 64-bit. You are running $($os.Caption), $($os.OSArchitecture)") }
+    if (!$prerequisites.UserNameValid) { $host.ui.WriteErrorLine("UserName ($env:UserName) must not contain spaces: Modify in Start -> User Accounts before continuing") }
+    if (!$prerequisites.UserMicrosoftAccount) { $host.ui.WriteErrorLine("User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)") }
+    Exit
+}
+
+$lockFile = "$setupDir\bootstrap-machine.lock"
+if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+    try {
+        # chocolatey initial setup
+        choco feature enable -n=allowGlobalConfirmation -y
+        choco feature enable -n=autoUninstaller -y
+
+        # Windows setup
+        Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
+        Disable-InternetExplorerESC
+        Update-ExecutionPolicy
+        Update-ExecutionPolicy Unrestricted
+        Install-WindowsUpdate  -AcceptEula
+        if (Test-PendingReboot) { Invoke-Reboot }
+
+        Enable-MicrosoftUpdate
+        Enable-UAC
+
+    } catch {
+        $logFile
+    }
+}
+New-Item $lockFile -Force
+
+if (!(Test-Path $setupDir)) {
+    New-Item -Path $setupDir -type Directory
+}
+
+
 $settingsPath = "$nudgeDir\settings.ini"
 $settings = @{}
 if (Test-Path $settingsPath) {
