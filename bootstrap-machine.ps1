@@ -40,8 +40,6 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 }
 Write-Host "Email Address: $emailAddress"
 
-Invoke-Item $ps.LogFile
-
 # initial settings for windows & boxstarter
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
@@ -99,11 +97,11 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
 
         # git ssh setup
         if (!(Test-Path "$($ps.SshDir)\id_rsa")) {
-            ssh-keygen -q -C $emailAddress -f $bash.SshDir/id_rsa
+            ssh-keygen -q -C $emailAddress -f "$($bash.SshDir)/id_rsa"
         }
 
         ssh-agent -s
-        ssh-add $bash.SshDir/id_rsa
+        ssh-add "$($bash.SshDir)/id_rsa"
         Get-Content "$($bash.SshDir)\id_rsa.pub" | clip
         Invoke-Item "$($bash.SshDir)\id_rsa.pub"
         Start-Process -FilePath "https://github.com/settings/ssh"
