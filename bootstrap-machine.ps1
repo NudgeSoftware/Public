@@ -36,6 +36,7 @@ Write-Host "Prerequisites satisfied!"
 
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
+    New-Item $ps.EmailAddressFile -Force
     Add-Content -Path $ps.EmailAddressFile -Value "$emailAddress"
 } else {
     $emailAddress = Get-Content -Path $ps.EmailAddressFile
