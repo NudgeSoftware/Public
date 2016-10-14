@@ -20,7 +20,7 @@ $os = Get-CimInstance Win32_OperatingSystem
 $prerequisites = New-Object PSObject -Property @{
     OSHasVersion = $os.Version -gt 11
     OSHasArchitecture = $os.OSArchitecture -eq '64-bit'
-    OSHasType = ($os.Caption -like '*Pro') -or ($os.Caption -like '*Enterprise')
+    OSHasType = ($os.Caption -like '*Pro*') -or ($os.Caption -like '*Enterprise*')
     UserNameValid = $env:UserName -notlike '* *'
 }
 if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType -or !$prerequisites.UserNameValid) {
