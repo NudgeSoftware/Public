@@ -29,10 +29,7 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
 #    if (!$prerequisites.UserMicrosoftAccount) { $host.ui.WriteErrorLine("User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)") }
     Exit
 }
-Start-Job -ScriptBlock { Get-Content $ps.LogFile –Wait }
-
 Write-Host "Prerequisites satisfied!"
-
 
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
@@ -41,6 +38,9 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 } else {
     $emailAddress = Get-Content -Path $ps.EmailAddressFile
 }
+Write-Host "Email Address: $emailAddress"
+
+Invoke-Item $ps.LogFile
 
 # initial settings for windows & boxstarter
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
@@ -56,14 +56,14 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
         Disable-InternetExplorerESC
         Update-ExecutionPolicy
         Update-ExecutionPolicy Unrestricted
+        New-Item $lockFile -Force
     } catch {
         Invoke-Item $ps.LogFile
         throw
     }
 }
-New-Item $lockFile -Force
 
-# git install & setup
+# git install
 $lockFile = "$($ps.SetupDir)\install-git.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -80,16 +80,19 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
         cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
         cinst poshgit -y
         cinst gitextensions -y
-        if (Test-PendingReboot) { Invoke-Reboot }
+        New-Item $lockFile -Force
+        Invoke-Reboot
+    } catch {
+        Invoke-Item $ps.LogFile
+        throw
+    }
+}
 
-        # Configure git
-        $registryPath = "HKCU:\Software\GitExtensions"
-        if (!(Test-Path $registryPath)) {
-            New-Item -Path $registryPath -Force | Out-Null
-        }
-        New-ItemProperty -Path $registryPath -Name "gitssh" -Value "" -PropertyType String -Force | Out-Null
-        New-ItemProperty -Path $registryPath -Name "gitcommand" -Value "" -PropertyType String -Force | Out-Null
-
+# git install & setup
+$lockFile = "$($ps.SetupDir)\setup-git.lock"
+if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+    if (Test-PendingReboot) { Invoke-Reboot }
+    try {
         git config --global user.name $user.FullName
         git config --global user.email $emailAddress
         git config --global core.autocrlf False
@@ -108,12 +111,12 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
         Write-Host "Copied the full contents of $($bash.SshDir)\id_rsa.pub (currently in your clipboard):"
         Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
         ssh -T git@github.com
+        New-Item $lockFile -Force
     } catch {
         Invoke-Item $ps.LogFile
         throw
     }
 }
-New-Item $lockFile -Force
 
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
@@ -125,12 +128,12 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
         Enable-MicrosoftUpdate
         # TODO: bitlocker
         cinst boxstarter -y
+        New-Item $lockFile -Force
     } catch {
         Invoke-Item $ps.LogFile
         throw
     }
 }
-New-Item $lockFile -Force
 
 
 if (!(Test-Path $ps.CodeDir)) {
