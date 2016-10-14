@@ -29,8 +29,10 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
 #    if (!$prerequisites.UserMicrosoftAccount) { $host.ui.WriteErrorLine("User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)") }
     Exit
 }
-
 Start-Job -ScriptBlock { Get-Content $ps.LogFile –Wait }
+
+Write-Host "Prerequisites satisfied!"
+
 
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
