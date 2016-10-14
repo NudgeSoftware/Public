@@ -15,6 +15,12 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
      $bash.$($p.Name) = $($ps.$($p.Name) -replace "\\", "/" -replace "C:", "/c")
 }
 
+Write-Host "Logs are available in $($ps.LogFile)"
+
+Write-Host $user
+Write-Host $ps
+Write-Host $bash
+
 # Prerequisite Validation
 $os = Get-CimInstance Win32_OperatingSystem
 $prerequisites = New-Object PSObject -Property @{
