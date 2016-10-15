@@ -1,11 +1,11 @@
-﻿# variables
+﻿# variables (both powershell and bash versions)
 $user = Get-CimInstance Win32_UserAccount | Where-Object { $_.Caption -eq $(whoami) }
 $ps = New-Object PSObject -Property @{
     NudgeDir = "C:\ProgramData\Nudge"
     SetupDir = "C:\ProgramData\Nudge\machine-setup"
     CodeDir = "C:\Code"
-    UserDir = "C:\Users\$env:UserName"
-    SshDir = "C:\Users\$env:UserName\.ssh"
+    UserDir = "$env:USERPROFILE" 
+    SshDir = "$env:USERPROFILE\.ssh"
     EmailAddressFile = "C:\ProgramData\Nudge\machine-setup\emailaddress.txt"
     LogFile = "$env:LocalAppData\Boxstarter\Boxstarter.log"
 }
@@ -15,6 +15,7 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
      $bash.$($p.Name) = $($ps.$($p.Name) -replace "\\", "/" -replace "C:", "/c")
 }
 
+# logging
 invoke-expression 'cmd /c start powershell -Command { ""; "** See $($ps.LogFile) for all logs"; ""; Get-Content $ps.LogFile -Wait }'
 
 # Prerequisite Validation
@@ -62,13 +63,13 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
 $lockFile = "$($ps.SetupDir)\install-git.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    cinst dotnet3.5 -y
-    cinst lessmsi -y
-    cinst webpicmd -y
-    if (Test-PendingReboot) { Invoke-Reboot }
+    #cinst dotnet3.5 -y
+    #cinst lessmsi -y
+    #cinst webpicmd -y
+    #if (Test-PendingReboot) { Invoke-Reboot }
 
     # hack to get lessmsi available
-    $env:Path += ";C:\ProgramData\chocolatey\bin"
+    #$env:Path += ";C:\ProgramData\chocolatey\bin"
 
     # install Git
     cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
@@ -110,7 +111,6 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
 
     Enable-MicrosoftUpdate
-    # TODO: bitlocker
     cinst boxstarter -y
     New-Item $lockFile -Force
 }
@@ -120,22 +120,41 @@ if (!(Test-Path $ps.CodeDir)) {
     New-Item -Path $ps.CodeDir -type Directory
 }
 
-if (!(Test-Path "$($ps.CodeDir)\Public")) {
-    if (Test-PendingReboot) { Invoke-Reboot }
-    cd $ps.CodeDir
-    git clone git@github.com:NudgeSoftware/Public.git
-    cp "$($ps.CodeDir)\Public\*" $ps.SetupDir
+$repo = "Public"
+if (!(Test-Path "$($ps.CodeDir)\$repo")) {
+    git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
+    cp "$($ps.CodeDir)\$repo\*" $ps.SetupDir
 }
 
-if (!(Test-Path "$($ps.CodeDir)\Tooling")) {
-    if (Test-PendingReboot) { Invoke-Reboot }
-    cd $ps.CodeDir
-    git clone git@github.com:NudgeSoftware/Tooling.git
-    #cp "$($ps.CodeDir)\Tooling\*" $ps.SetupDir
+$repo = "Tooling"
+if (!(Test-Path "$($ps.CodeDir)\$repo")) {
+    git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
+    cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir
+}
+
+$repo = "Relationships"
+if (!(Test-Path "$($ps.CodeDir)\$repo")) {
+    git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
 }
 
 # VS 2015 Update 3 required
 # user script ??
 
+# TODO: other scripts in Tooling repo
+
+# TODO: Implement custom scripts behavior
+& custom-scripts.ps1 -emailAddress $emailAddress
+
+if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
+    $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
+    if (!(Test-Path $key)) { New-Item $key }
+
+    Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
+    Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
+
+    $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
+    # this is not working on the VM ...
+    Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
+}
 Enable-UAC
 
