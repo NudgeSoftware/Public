@@ -95,8 +95,11 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     ssh-agent -s
     ssh-add "$($bash.SshDir)/id_rsa"
     Get-Content "$($ps.SshDir)\id_rsa.pub" | clip
-    Invoke-Item "$($ps.SshDir)\id_rsa.pub"
-    Start-Process -FilePath "https://github.com/settings/ssh"
+
+    # because of the context, can't use Edge to open github at this point
+    cinst googlechrome -y
+    & notepad "$($ps.SshDir)\id_rsa.pub"
+    & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
     Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
     Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
@@ -137,24 +140,46 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
 }
 
+# productivity tools
+
+# DSC for windows features, IIS setup, frameworks
+& . "$($ps.SetupDir)\windows-configuration.ps1"
+WindowsConfiguration -ComputerName $env:ComputerName
+
+# TODO: tomcat -- can this be hosted in docker instead ??
+
+# node.js, client side tooling
+# server tooling
+# configure IIS, shared config
+# create dev certs
+# configure Tomcat
+
+# visual studio install, resharper tools
+# intellij
+# datastax dev centre
+# sql management studio
+
+# hosts file setup
+# azure sdk setup
+
+# environment variable config
+
+& "$($ps.SetupDir)\create-database.ps1" -setupDir $ps.SetupDir
+
+
+
+# install Editors & IDEs (some is done in custom..)
+# 
+
+# https://gist.github.com/NickCraver/7ebf9efbfd0c3eab72e9 for some custom setup?
 # VS 2015 Update 3 required
-# user script ??
+# can I use DSC or ansible for some of the more standard stuff (windows features, IIS setup, frameworks, etc)?
+# see http://mikefrobbins.com/2015/11/05/solving-dsc-problems-on-windows-10-writing-powershell-code-that-writes-powershell-code-for-you/
 
 # TODO: other scripts in Tooling repo
 
-# TODO: Implement custom scripts behavior
-& custom-scripts.ps1 -emailAddress $emailAddress
+& "$($ps.SetupDir)\custom-scripts.ps1" -emailAddress $emailAddress
 
-if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
-    $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
-    if (!(Test-Path $key)) { New-Item $key }
-
-    Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
-    Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
-
-    $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
-    # this is not working on the VM ...
-    Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
-}
+& "$($ps.SetupDir)\enable-bitlocker.ps1"
 Enable-UAC
 
