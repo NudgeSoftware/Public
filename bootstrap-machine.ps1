@@ -7,7 +7,6 @@ $ps = New-Object PSObject -Property @{
     CodeDir = "C:\Code"
     UserDir = "$env:USERPROFILE" 
     SshDir = "$env:USERPROFILE\.ssh"
-    LogFile = "$env:LocalAppData\Boxstarter\Boxstarter.log"
 }
 $bash = New-Object PSObject
 foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
@@ -16,7 +15,7 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
 }
 
 # logging
-invoke-expression 'cmd /c start powershell -Command { ""; "** See $($ps.LogFile) for all logs"; ""; Get-Content $ps.LogFile -Wait }'
+invoke-expression 'cmd /c start powershell -Command { ""; "** See $env:LocalAppData\Boxstarter\Boxstarter.log for all logs"; ""; Get-Content "$env:LocalAppData\Boxstarter\Boxstarter.log" -Wait }'
 
 # Prerequisite Validation
 $os = Get-CimInstance Win32_OperatingSystem
@@ -122,11 +121,6 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
 if (!(Test-Path $ps.CodeDir)) {
     New-Item -Path $ps.CodeDir -type Directory
 }
-$repo = "Public"
-if (!(Test-Path "$($ps.CodeDir)\$repo")) {
-    git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
-    cp "$($ps.CodeDir)\$repo\*" $ps.SetupDir
-}
 $repo = "Tooling"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
@@ -138,7 +132,17 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
 }
 
 # TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
-& "$($ps.SetupDir)\enable-bitlocker.ps1"
+if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
+    $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
+    if (!(Test-Path $key)) { New-Item $key }
+
+    Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
+    Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
+
+    $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
+    # this is not working on the VM ...
+    Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
+}
 
 & "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir
 
