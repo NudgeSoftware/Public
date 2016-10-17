@@ -143,9 +143,9 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
 # productivity tools
 
 # DSC for windows features, IIS setup, frameworks
-& . "$($ps.SetupDir)\windows-configuration.ps1"
-WindowsConfiguration -ComputerName $env:ComputerName
-
+# TODO: rewrite "localhost" to $env:ComputerName ?
+& "$($ps.SetupDir)\windows-configuration.ps1"
+#Start-DSCConfiguration -Path "$($ps.SetupDir)\WindowsConfiguration" -Verbose -Wait -Force
 # TODO: tomcat -- can this be hosted in docker instead ??
 
 # node.js, client side tooling
@@ -180,6 +180,7 @@ WindowsConfiguration -ComputerName $env:ComputerName
 
 & "$($ps.SetupDir)\custom-scripts.ps1" -emailAddress $emailAddress
 
+# TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
 & "$($ps.SetupDir)\enable-bitlocker.ps1"
 Enable-UAC
 
