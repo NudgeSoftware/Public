@@ -144,6 +144,6 @@ if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.Protec
     Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
 }
 
-& "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir
+& "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
 
 Enable-UAC
