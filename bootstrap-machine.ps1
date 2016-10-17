@@ -17,7 +17,7 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
 # logging
 invoke-expression 'cmd /c start powershell -Command { ""; "** See $env:LocalAppData\Boxstarter\Boxstarter.log for all logs"; ""; Get-Content "$env:LocalAppData\Boxstarter\Boxstarter.log" -Wait }'
 
-# Prerequisite Validation
+Write-Host ">> Prerequisites validation"
 $os = Get-CimInstance Win32_OperatingSystem
 $prerequisites = New-Object PSObject -Property @{
     OSHasVersion = $os.Version -gt 10
@@ -31,8 +31,8 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
 #    if (!$prerequisites.UserMicrosoftAccount) { $host.ui.WriteErrorLine("User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)") }
     Exit
 }
-Write-Host "Prerequisites satisfied!"
 
+Write-Host ">> Email Address"
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
     New-Item $ps.EmailAddressFile -Force
@@ -42,7 +42,7 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 }
 Write-Host "Email Address: $emailAddress"
 
-# initial settings for windows & boxstarter
+Write-Host ">> Update Boxstarter"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -55,22 +55,15 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     Disable-InternetExplorerESC
     Update-ExecutionPolicy
     Update-ExecutionPolicy Unrestricted
+    cinst boxstarter -y
     New-Item $lockFile -Force
 }
 
-# git install
+Write-Host ">> Install git"
 $lockFile = "$($ps.SetupDir)\install-git.lock"
-if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    #cinst dotnet3.5 -y
-    #cinst lessmsi -y
-    #cinst webpicmd -y
-    #if (Test-PendingReboot) { Invoke-Reboot }
-
-    # hack to get lessmsi available
-    #$env:Path += ";C:\ProgramData\chocolatey\bin"
-
-    # install Git
+    # git install
     cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
     cinst poshgit -y
     cinst gitextensions -y
@@ -78,9 +71,9 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     Invoke-Reboot
 }
 
-# git setup
+Write-Host ">> Setup git & github"
 $lockFile = "$($ps.SetupDir)\setup-git.lock"
-if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
     git config --global user.name $user.FullName
     git config --global user.email $emailAddress
@@ -106,6 +99,7 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     New-Item $lockFile -Force
 }
 
+Write-Host ">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -113,11 +107,10 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
 
     Enable-MicrosoftUpdate
-    cinst boxstarter -y
     New-Item $lockFile -Force
 }
 
-# Get the code
+Write-Host ">> Pull code from github"
 if (!(Test-Path $ps.CodeDir)) {
     New-Item -Path $ps.CodeDir -type Directory
 }
@@ -131,19 +124,23 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
 }
 
-# TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
-if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
-    $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
-    if (!(Test-Path $key)) { New-Item $key }
-
-    Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
-    Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
-
-    $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
-    # this is not working on the VM ...
-    Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
-}
-
 & "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
+
+Write-Host ">> Setup Bitlocker"
+$lockFile = "$($ps.SetupDir)\setup-bitlocker.lock"
+if (!(Test-Path $lockFile)) {
+    # TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
+    if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
+        $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
+        if (!(Test-Path $key)) { New-Item $key }
+
+        Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
+        Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
+
+        $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
+        # this is not working on the VM ...
+        Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
+    }
+}
 
 Enable-UAC
