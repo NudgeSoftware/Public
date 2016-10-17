@@ -1,12 +1,12 @@
 ﻿# variables (both powershell and bash versions)
 $user = Get-CimInstance Win32_UserAccount | Where-Object { $_.Caption -eq $(whoami) }
 $ps = New-Object PSObject -Property @{
-    NudgeDir = "C:\ProgramData\Nudge"
-    SetupDir = "C:\ProgramData\Nudge\machine-setup"
+    NudgeDir = "$env:ProgramData\Nudge"
+    SetupDir = "$env:ProgramData\Nudge\machine-setup"
+    EmailAddressFile = "$env:ProgramData\Nudge\machine-setup\emailaddress.txt"
     CodeDir = "C:\Code"
     UserDir = "$env:USERPROFILE" 
     SshDir = "$env:USERPROFILE\.ssh"
-    EmailAddressFile = "C:\ProgramData\Nudge\machine-setup\emailaddress.txt"
     LogFile = "$env:LocalAppData\Boxstarter\Boxstarter.log"
 }
 $bash = New-Object PSObject
@@ -118,69 +118,28 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     New-Item $lockFile -Force
 }
 
-
+# Get the code
 if (!(Test-Path $ps.CodeDir)) {
     New-Item -Path $ps.CodeDir -type Directory
 }
-
 $repo = "Public"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
     cp "$($ps.CodeDir)\$repo\*" $ps.SetupDir
 }
-
 $repo = "Tooling"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
     cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir
 }
-
 $repo = "Relationships"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
 }
 
-# productivity tools
-
-# DSC for windows features, IIS setup, frameworks
-# TODO: rewrite "localhost" to $env:ComputerName ?
-& "$($ps.SetupDir)\windows-configuration.ps1"
-#Start-DSCConfiguration -Path "$($ps.SetupDir)\WindowsConfiguration" -Verbose -Wait -Force
-# TODO: tomcat -- can this be hosted in docker instead ??
-
-# node.js, client side tooling
-# server tooling
-# configure IIS, shared config
-# create dev certs
-# configure Tomcat
-
-# visual studio install, resharper tools
-# intellij
-# datastax dev centre
-# sql management studio
-
-# hosts file setup
-# azure sdk setup
-
-# environment variable config
-
-& "$($ps.SetupDir)\create-database.ps1" -setupDir $ps.SetupDir
-
-
-
-# install Editors & IDEs (some is done in custom..)
-# 
-
-# https://gist.github.com/NickCraver/7ebf9efbfd0c3eab72e9 for some custom setup?
-# VS 2015 Update 3 required
-# can I use DSC or ansible for some of the more standard stuff (windows features, IIS setup, frameworks, etc)?
-# see http://mikefrobbins.com/2015/11/05/solving-dsc-problems-on-windows-10-writing-powershell-code-that-writes-powershell-code-for-you/
-
-# TODO: other scripts in Tooling repo
-
-& "$($ps.SetupDir)\custom-scripts.ps1" -emailAddress $emailAddress
-
 # TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
 & "$($ps.SetupDir)\enable-bitlocker.ps1"
-Enable-UAC
 
+& "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir
+
+Enable-UAC
