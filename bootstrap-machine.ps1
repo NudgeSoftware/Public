@@ -89,6 +89,7 @@ if (!(Test-Path $lockFile)) {
 
     # because of the context, can't use Edge to open github at this point
     cinst googlechrome -y
+    cinst lastpass -y
     & notepad "$($ps.SshDir)\id_rsa.pub"
     & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
