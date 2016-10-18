@@ -14,9 +14,6 @@ foreach ($p in Get-Member -InputObject $ps -MemberType NoteProperty) {
      $bash.$($p.Name) = $($ps.$($p.Name) -replace "\\", "/" -replace "C:", "/c")
 }
 
-# logging
-invoke-expression 'cmd /c start powershell -Command { ""; "** See $env:LocalAppData\Boxstarter\Boxstarter.log for all logs"; ""; Get-Content "$env:LocalAppData\Boxstarter\Boxstarter.log" -Wait }'
-
 Write-Host ">> Prerequisites validation"
 $os = Get-CimInstance Win32_OperatingSystem
 $prerequisites = New-Object PSObject -Property @{
@@ -26,9 +23,9 @@ $prerequisites = New-Object PSObject -Property @{
     UserNameValid = $env:UserName -notlike '* *'
 }
 if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType -or !$prerequisites.UserNameValid) {
-    if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType) { $host.ui.WriteErrorLine("Minimum supported version of Windows is Windows 10 Pro, 64-bit. You are running $($os.Caption), $($os.OSArchitecture)") }
-    if (!$prerequisites.UserNameValid) { $host.ui.WriteErrorLine("UserName ($env:UserName) must not contain spaces: Modify in Start -> User Accounts before continuing") }
-#    if (!$prerequisites.UserMicrosoftAccount) { $host.ui.WriteErrorLine("User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)") }
+    if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType) { Write-Host "Minimum supported version of Windows is Windows 10 Pro, 64-bit. You are running $($os.Caption), $($os.OSArchitecture)" }
+    if (!$prerequisites.UserNameValid) { Write-Host "UserName ($env:UserName) must not contain spaces: Modify in Start -> User Accounts before continuing" }
+#    if (!$prerequisites.UserMicrosoftAccount) { Write-Host "User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)" }
     Exit
 }
 
@@ -48,6 +45,7 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     # chocolatey initial setup
     choco feature enable -n=allowGlobalConfirmation -y
     choco feature enable -n=autoUninstaller -y
+    & "$env:windir\Microsoft.NET\Framework64\v2.0.50727\ldr64" set64
 
     # Windows setup
     Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
@@ -99,14 +97,15 @@ if (!(Test-Path $lockFile)) {
     New-Item $lockFile -Force
 }
 
+# logging
+invoke-expression 'cmd /c start powershell -Command { ""; "** See $env:LocalAppData\Boxstarter\Boxstarter.log for all logs"; ""; Get-Content "$env:LocalAppData\Boxstarter\Boxstarter.log" -Wait }'
+
 Write-Host ">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     if (Test-PendingReboot) { Invoke-Reboot }
-    Install-WindowsUpdate  -AcceptEula
-    if (Test-PendingReboot) { Invoke-Reboot }
 
-    Enable-MicrosoftUpdate
+    Install-WindowsUpdate  -AcceptEula
     New-Item $lockFile -Force
 }
 
@@ -127,4 +126,5 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
 & "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
 
 
+Enable-MicrosoftUpdate
 Enable-UAC
