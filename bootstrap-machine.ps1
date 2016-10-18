@@ -32,7 +32,6 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
     Exit
 }
 
-Write-Host ">> Email Address"
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
     New-Item $ps.EmailAddressFile -Force
@@ -40,7 +39,7 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 } else {
     $emailAddress = Get-Content -Path $ps.EmailAddressFile
 }
-Write-Host "Email Address: $emailAddress"
+Write-Host ">> Email Address: $emailAddress"
 
 Write-Host ">> Update Boxstarter"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
@@ -126,21 +125,5 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
 
 & "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
 
-Write-Host ">> Setup Bitlocker"
-$lockFile = "$($ps.SetupDir)\setup-bitlocker.lock"
-if (!(Test-Path $lockFile)) {
-    # TODO: potentially use this https://www.powershellgallery.com/packages/xBitlocker/1.1.0.0/Content/Examples%5CConfigureBitlockerOnOSDrive%5CConfigureBitlockerOnOSDrive.ps1
-    if ($(Get-BitLockerVolume | Where-Object { $_.MountPoint -eq "C:" -and $_.ProtectionStatus -eq "On" }).Count -lt 1) {
-        $key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\FVE"
-        if (!(Test-Path $key)) { New-Item $key }
-
-        Set-ItemProperty -Path $key -Name UseAdvancedStartup -Value 1
-        Set-ItemProperty -Path $key -Name EnableBDEWithNoTPM -Value 1
-
-        $bitLockerPassword = Read-Host -Prompt "Enter password for bitlocker" -AsSecureString
-        # this is not working on the VM ...
-        Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 –UsedSpaceOnly -PasswordProtector -Password $bitLockerPassword
-    }
-}
 
 Enable-UAC
