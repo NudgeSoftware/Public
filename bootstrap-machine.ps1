@@ -53,6 +53,7 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     Update-ExecutionPolicy
     Update-ExecutionPolicy Unrestricted
     cinst boxstarter -y
+    cinst chocolatey -y
     New-Item $lockFile -Force
 }
 
@@ -71,7 +72,6 @@ if (!(Test-Path $lockFile)) {
 Write-Host ">> Setup git & github"
 $lockFile = "$($ps.SetupDir)\setup-git.lock"
 if (!(Test-Path $lockFile)) {
-    if (Test-PendingReboot) { Invoke-Reboot }
     git config --global user.name $user.FullName
     git config --global user.email $emailAddress
     git config --global core.autocrlf False
@@ -92,7 +92,9 @@ if (!(Test-Path $lockFile)) {
     & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
     Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
-    Read-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
+    Write-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
+    Write-Host ""
+    Read-Host "The below (Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded) can be ignored."
     ssh -T git@github.com
     New-Item $lockFile -Force
 }
