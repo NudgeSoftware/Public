@@ -110,14 +110,18 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
 }
 
 Write-Host ">> Pull code from github"
-if (!(Test-Path $ps.CodeDir)) {
-    New-Item -Path $ps.CodeDir -type Directory
-}
+if (!(Test-Path $ps.CodeDir)) { New-Item -Path $ps.CodeDir -type Directory }
+
 $repo = "Tooling"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
-    cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir
+} else {
+    cd "$($ps.CodeDir)\$repo"
+    git fetch
+    git merge origin/master
 }
+cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir -Force
+
 $repo = "Relationships"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
