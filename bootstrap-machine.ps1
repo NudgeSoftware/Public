@@ -53,7 +53,6 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     Update-ExecutionPolicy
     Update-ExecutionPolicy Unrestricted
     cinst boxstarter -y
-    cinst chocolatey -y
     New-Item $lockFile -Force
 }
 
