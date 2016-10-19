@@ -48,7 +48,6 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
     # chocolatey initial setup
     choco feature enable -n=allowGlobalConfirmation -y
     choco feature enable -n=autoUninstaller -y
-    & "$env:windir\Microsoft.NET\Framework64\v2.0.50727\ldr64" set64
 
     # Windows setup
     Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -EnableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar
@@ -67,6 +66,8 @@ if (!(Test-Path $lockFile)) {
     cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
     cinst poshgit -y
     cinst gitextensions -y
+    cinst googlechrome -y # needed to open ssh path in github since Edge won't work at this point
+    cinst lastpass -y # potentially needed for password to github
     New-Item $lockFile -Force
     Invoke-Reboot
 }
@@ -88,8 +89,6 @@ if (!(Test-Path $lockFile)) {
     Get-Content "$($ps.SshDir)\id_rsa.pub" | clip
 
     # because of the context, can't use Edge to open github at this point
-    cinst googlechrome -y
-    cinst lastpass -y
     & notepad "$($ps.SshDir)\id_rsa.pub"
     & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
