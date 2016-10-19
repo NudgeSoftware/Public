@@ -64,8 +64,7 @@ if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
     # git install
     cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
-    cinst poshgit -y
-    cinst gitextensions -y
+    cinst poshgit gitextensions -y
     cinst googlechrome -y # needed to open ssh path in github since Edge won't work at this point
     cinst lastpass -y # potentially needed for password to github
     New-Item $lockFile -Force
