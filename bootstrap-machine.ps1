@@ -29,6 +29,9 @@ if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$pre
     Exit
 }
 
+Write-Host ">> Logging is in $env:LocalAppData\Boxstarter\Boxstarter.log, available from link on Desktop"
+Install-ChocolateyShortcut -ShortcutFilePath "$env:USERPROFILE\Desktop\Boxstarter Log.lnk"  -TargetPath $env:LocalAppData\Boxstarter\Boxstarter.log
+
 if (!(Test-Path $ps.EmailAddressFile)) {
     $emailAddress = Read-Host "What email do you use with git? "  
     New-Item $ps.EmailAddressFile -Force
@@ -97,9 +100,6 @@ if (!(Test-Path $lockFile)) {
     ssh -T git@github.com
     New-Item $lockFile -Force
 }
-
-# logging
-invoke-expression 'cmd /c start powershell -Command { ""; "** See $env:LocalAppData\Boxstarter\Boxstarter.log for all logs"; ""; Get-Content "$env:LocalAppData\Boxstarter\Boxstarter.log" -Wait }'
 
 Write-Host ">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
