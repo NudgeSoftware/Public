@@ -43,7 +43,7 @@ Write-Host ">> Email Address: $emailAddress"
 
 Write-Host ">> Update Boxstarter"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
-if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
     # chocolatey initial setup
     choco feature enable -n=allowGlobalConfirmation -y
@@ -102,7 +102,7 @@ if (!(Test-Path $lockFile)) {
 
 Write-Host ">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
-if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-2))) {
+if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
     if (Test-PendingReboot) { Invoke-Reboot }
 
     Install-WindowsUpdate  -AcceptEula
