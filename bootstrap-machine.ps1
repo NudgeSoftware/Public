@@ -44,7 +44,7 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 ">> Update Boxstarter"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
 if (!(Test-Path $lockFile)) {
-    if (Test-PendingReboot) { Invoke-Reboot }
+    if (Test-PendingReboot) { Restart-Computer -Force }
     # chocolatey initial setup
     choco feature enable -n=allowGlobalConfirmation -y
     choco feature enable -n=autoUninstaller -y
@@ -61,7 +61,7 @@ if (!(Test-Path $lockFile)) {
 ">> Install git"
 $lockFile = "$($ps.SetupDir)\install-git.lock"
 if (!(Test-Path $lockFile)) {
-    if (Test-PendingReboot) { Invoke-Reboot }
+    if (Test-PendingReboot) { Restart-Computer -Force }
     # git install
     cinst git -y -params '"/GitAndUnixToolsOnPath /NoAutoCrlf"'
     cinst poshgit gitextensions -y
@@ -102,7 +102,7 @@ if (!(Test-Path $lockFile)) {
 ">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
-    if (Test-PendingReboot) { Invoke-Reboot }
+    if (Test-PendingReboot) { Restart-Computer -Force }
 
     Install-WindowsUpdate  -AcceptEula
     New-Item $lockFile -Force
