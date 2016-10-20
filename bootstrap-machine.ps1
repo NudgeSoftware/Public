@@ -23,13 +23,13 @@ $prerequisites = New-Object PSObject -Property @{
     UserNameValid = $env:UserName -notlike '* *'
 }
 if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType -or !$prerequisites.UserNameValid) {
-    if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType) { Write-Host "Minimum supported version of Windows is Windows 10 Pro, 64-bit. You are running $($os.Caption), $($os.OSArchitecture)" }
-    if (!$prerequisites.UserNameValid) { Write-Host "UserName ($env:UserName) must not contain spaces: Modify in Start -> User Accounts before continuing" }
+    if (!$prerequisites.OSHasVersion -or !$prerequisites.OSHasArchitecture -or !$prerequisites.OSHasType) { "Minimum supported version of Windows is Windows 10 Pro, 64-bit. You are running $($os.Caption), $($os.OSArchitecture)" }
+    if (!$prerequisites.UserNameValid) { "UserName ($env:UserName) must not contain spaces: Modify in Start -> User Accounts before continuing" }
 #    if (!$prerequisites.UserMicrosoftAccount) { Write-Host "User account must be linked to Microsoft account (see https://support.microsoft.com/en-us/help/17201/windows-10-sign-in-with-a-microsoft-account)" }
     Exit
 }
 
-Write-Host ">> Logging is in $env:LocalAppData\Boxstarter\Boxstarter.log, available from link on Desktop"
+">> Logging is in $env:LocalAppData\Boxstarter\Boxstarter.log, available from link on Desktop"
 Install-ChocolateyShortcut -ShortcutFilePath "$env:USERPROFILE\Desktop\Boxstarter Log.lnk"  -TargetPath $env:LocalAppData\Boxstarter\Boxstarter.log
 
 if (!(Test-Path $ps.EmailAddressFile)) {
@@ -39,9 +39,9 @@ if (!(Test-Path $ps.EmailAddressFile)) {
 } else {
     $emailAddress = Get-Content -Path $ps.EmailAddressFile
 }
-Write-Host ">> Email Address: $emailAddress"
+">> Email Address: $emailAddress"
 
-Write-Host ">> Update Boxstarter"
+">> Update Boxstarter"
 $lockFile = "$($ps.SetupDir)\bootstrap-machine.lock"
 if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -58,7 +58,7 @@ if (!(Test-Path $lockFile)) {
     New-Item $lockFile -Force
 }
 
-Write-Host ">> Install git"
+">> Install git"
 $lockFile = "$($ps.SetupDir)\install-git.lock"
 if (!(Test-Path $lockFile)) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -71,7 +71,7 @@ if (!(Test-Path $lockFile)) {
     Invoke-Reboot
 }
 
-Write-Host ">> Setup git & github"
+">> Setup git & github"
 $lockFile = "$($ps.SetupDir)\setup-git.lock"
 if (!(Test-Path $lockFile)) {
     git config --global user.name $user.FullName
@@ -91,15 +91,15 @@ if (!(Test-Path $lockFile)) {
     & notepad "$($ps.SshDir)\id_rsa.pub"
     & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
-    Write-Host "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
-    Write-Host "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
-    Write-Host ""
-    Read-Host "The below (Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded) can be ignored."
+    "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
+    "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
+    ""
+    Read-Host "vvv The repeated RED text below can be ignored vvv [main_dll_loader_win.cc ...]"
     ssh -T git@github.com
     New-Item $lockFile -Force
 }
 
-Write-Host ">> Update Windows"
+">> Update Windows"
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
     if (Test-PendingReboot) { Invoke-Reboot }
@@ -108,7 +108,7 @@ if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
     New-Item $lockFile -Force
 }
 
-Write-Host ">> Pull code from github"
+">> Pull code from github"
 if (!(Test-Path $ps.CodeDir)) { New-Item -Path $ps.CodeDir -type Directory }
 
 $repo = "Tooling"
@@ -124,8 +124,12 @@ cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir -Force
 $repo = "Relationships"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
+} else {
+    cd "$($ps.CodeDir)\$repo"
+    git fetch
+    git merge origin/master
 }
 
-#& "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
-#Enable-MicrosoftUpdate
-#Enable-UAC
+& "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir -nudgeDir $ps.NudgeDir -codeDir $ps.CodeDir -emailAddress $emailAddress
+Enable-MicrosoftUpdate
+Enable-UAC
