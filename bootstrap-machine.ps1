@@ -91,8 +91,10 @@ if (!(Test-Path $lockFile)) {
     & notepad "$($ps.SshDir)\id_rsa.pub"
     & "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" "https://github.com/settings/ssh"
 
-    "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard):"
+    "Copied the full contents of $($bash.SshDir)/id_rsa.pub (currently in your clipboard and notepad)"
     "Go to https://github.com/settings/ssh and add as a new key, then press ENTER"
+    ""
+    ""
     ""
     Read-Host "vvv The repeated RED text below can be ignored vvv [main_dll_loader_win.cc ...]"
     ssh -T git@github.com
