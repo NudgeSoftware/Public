@@ -131,6 +131,9 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git merge origin/master
 }
 
+# hack for lessmsi and webpi
+if (!($env:Path -like "*$env:ProgramData\chocolatey\bin*")) { $env:Path += ";$env:ProgramData\chocolatey\bin" }
+
 & "$($ps.SetupDir)\Create-Packages.ps1" -setupDir $ps.SetupDir
 & "$($ps.SetupDir)\Install-Environment.ps1" -setupDir $ps.SetupDir
 
