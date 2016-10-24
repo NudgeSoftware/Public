@@ -102,10 +102,12 @@ if (!(Test-Path $lockFile)) {
 }
 
 ">> Update Windows"
+Set-BoxstarterConfig -LocalRepo $ps.SetupDir
 $lockFile = "$($ps.SetupDir)\windows-update.lock"
 if (!(Test-Path $lockFile -NewerThan (Get-Date).AddHours(-1))) {
     if (Test-PendingReboot) { Invoke-Reboot }
 
+    Set-BoxstarterConfig -LocalRepo $ps.SetupDir
     Install-WindowsUpdate  -AcceptEula
     New-Item $lockFile -Force
 }
