@@ -124,7 +124,7 @@ if (!(Test-Path "$($ps.CodeDir)\$repo")) {
 }
 cp "$($ps.CodeDir)\$repo\config\dev\*" $ps.SetupDir -Force
 
-$repo = "Relationships"
+$repo = "nudge-app"
 if (!(Test-Path "$($ps.CodeDir)\$repo")) {
     git clone git@github.com:NudgeSoftware/$repo.git "$($ps.CodeDir)\$repo"
 } else {
